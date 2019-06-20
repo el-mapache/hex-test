@@ -2,24 +2,27 @@ import "./styles.css";
 const SVG = require("svg.js");
 const honeycomb = require("honeycomb-grid");
 
-const photoHex1 = SVG(document.getElementById("photo-hex-1"));
+// Initialize the SVG container element
 const photoHex2 = SVG(document.getElementById("photo-hex-2"));
 
 // create a hexagon factory
-const Hex = honeycomb.extendHex({ size: 20, offset: -1 });
+const Hex = honeycomb.extendHex({ size: 20 });
 
 const Grid = honeycomb.defineGrid(Hex);
 // get the corners of a hex (they're the same for all hexes created with the same Hex factory)
 const corners = Hex().corners();
-const backingGrid = Grid.rectangle({ width: 30, height: 30 });
+
+// in-memory representation of a grid of hexagons, from which the
+// concrete hex grid will be rendered
+const backingGrid = Grid.rectangle({ width: 22, height: 22 });
 
 SVG.Hexagon = SVG.invent({
   inherit: SVG.Shape,
   create() {
     return new SVG.Defs()
-      .polygon(corners.map(coords => `${coords.x},${coords.y}`))
-      .fill({ color: "#fff", opacity: "0.1" })
-      .stroke({ width: "2", color: "#fff", opacity: "0.1" });
+      .polygon(corners.map(({ x, y }) => `${x},${y}`))
+      .fill({ color: "#fff", opacity: "0" })
+      .stroke({ width: "1", color: "#bbb", opacity: "0.1" });
   },
   construct: {
     hexagon(x, y) {
@@ -40,9 +43,6 @@ SVG.HexagonGroup = SVG.invent({
 
     return group;
   },
-
-  extend: {},
-
   construct: {
     hexagonGroup() {
       return this.put(new SVG.HexagonGroup());
@@ -50,66 +50,73 @@ SVG.HexagonGroup = SVG.invent({
   }
 });
 
-SVG.ResourceImage = SVG.invent({
-  inherit: SVG.Shape,
-  create: "image"
-});
-
-const hexes = photoHex1.hexagonGroup();
-
-console.log(hexes.children().length);
-
-// baseImage.maskWith(hexes);
+const hexagons = photoHex2.hexagonGroup();
 
 const catImageA = photoHex2
-  .image("./src/img/place-cat-a.jpeg")
-  .loaded(function(loader) {
-    this.size(loader.width, loader.height);
-  });
+  .image("./src/img/place-cat-a.jpeg", 400, 400)
+  .translate(22, 22);
 const catImageB = photoHex2
-  .image("./src/img/place-cat-b.jpeg")
-  .loaded(function(loader) {
-    this.size(loader.width, loader.height);
-  });
+  .image("./src/img/place-cat-b.jpeg", 400, 200)
+  .translate(22, 22);
+
+photoHex2.use(hexagons);
 
 const visibleMaskProps = {
   color: "#fff",
   opacity: "1"
 };
 
+// filter backing hexagon grid into a new list containing all hexagons
+// that fall within the base image
+const hexagonsInImage = backingGrid.filter(hexagon => {
+  const { x, y } = hexagon.toPoint();
+  return catImageA.inside(x, y);
+});
+
+const hexAtIndex = index => ({
+  svg: hexagons.get(index),
+  memory: backingGrid.get(index)
+});
+
 /**
- * set a number n
- * set a hash of checked hexagons to {}
- * set an array of hexagon elements to []
- * get all children in the hexagon grid and
- *  filter those children by the underlying image's bounding box
- *
- * - get n random hexagons.
- * - filter those hexagons by checking if they are within the target
- * image's bounding box
- * - if they are, add to array of hexagons
- * - add index to checked hash
- *
- * - repeat until hexagon[] === n
- *
+ * regardless of what index is chosen here, the offsets used below for the
+ * first item aadded to the mask are always the same. The correct portion
+ * of the image masking the original is shown, however?
  */
 
-photoHex2.use(hexes);
-
 const hexImageMask = photoHex2.mask();
-const count = 7;
+
+const getRandomBetween = (min, max) => Math.floor(Math.random() * max) + min;
+
+const chosenIndicies = {};
+
+const loopLength = hexagonsInImage.length;
 let i = 0;
 
-const cancelLoop = setInterval(() => {
-  if (i === count) {
-    clearInterval(cancelLoop);
+const animationLoop = setInterval(() => {
+  if (i === loopLength) {
+    clearInterval(animationLoop);
+    return;
   }
 
-  hexImageMask.add(hexes.get(i).fill(visibleMaskProps));
+  let nextIndex = getRandomBetween(0, loopLength);
+
+  while (chosenIndicies[nextIndex]) {
+    nextIndex = getRandomBetween(0, loopLength);
+  }
+
+  chosenIndicies[nextIndex] = true;
+
+  const { svg, memory } = hexAtIndex(nextIndex);
+  const inMemoryGridPoint = memory.toPoint();
+
+  hexImageMask.add(
+    svg
+      .translate(inMemoryGridPoint.x - 22, inMemoryGridPoint.y - 22)
+      .fill(visibleMaskProps)
+  );
 
   i += 1;
-}, 250);
+}, 100);
 
-console.log(hexes.get(1).bbox());
-
-//catImageB.maskWith(hexImageMask);
+catImageB.maskWith(hexImageMask);
