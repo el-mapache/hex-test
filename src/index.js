@@ -59,6 +59,14 @@ const catImageB = photoHex2
   .image("./src/img/place-cat-b.jpeg", 400, 200)
   .translate(22, 22);
 
+const actualHexagons = hexagons.children().filter(hexagonSVG => {
+  //const { x, y } = hexagonSVG.point();
+  console.log(hexagonSVG, hexagonSVG.attr(), hexagonSVG.y());
+  return catImageB.inside(hexagonSVG.x(), hexagonSVG.y());
+});
+
+console.log(actualHexagons, actualHexagons.length);
+
 photoHex2.use(hexagons);
 
 const visibleMaskProps = {
@@ -70,8 +78,10 @@ const visibleMaskProps = {
 // that fall within the base image
 const hexagonsInImage = backingGrid.filter(hexagon => {
   const { x, y } = hexagon.toPoint();
-  return catImageA.inside(x, y);
+  return catImageB.inside(x, y);
 });
+
+console.log(hexagonsInImage.length);
 
 const hexAtIndex = index => ({
   svg: hexagons.get(index),
@@ -93,30 +103,40 @@ const chosenIndicies = {};
 const loopLength = hexagonsInImage.length;
 let i = 0;
 
-const animationLoop = setInterval(() => {
-  if (i === loopLength) {
-    clearInterval(animationLoop);
-    return;
-  }
+// const animationLoop = setInterval(() => {
+//   if (i === loopLength) {
+//     clearInterval(animationLoop);
+//     return;
+//   }
 
-  let nextIndex = getRandomBetween(0, loopLength);
+//   let nextIndex = getRandomBetween(0, loopLength);
 
-  while (chosenIndicies[nextIndex]) {
-    nextIndex = getRandomBetween(0, loopLength);
-  }
+//   while (chosenIndicies[nextIndex]) {
+//     nextIndex = getRandomBetween(0, loopLength);
+//   }
 
-  chosenIndicies[nextIndex] = true;
+//   chosenIndicies[nextIndex] = true;
 
-  const { svg, memory } = hexAtIndex(nextIndex);
-  const inMemoryGridPoint = memory.toPoint();
+//   const { svg, memory } = hexAtIndex(nextIndex);
+//   const inMemoryGridPoint = memory.toPoint();
+//   const nextHex = svg
+//     .translate(inMemoryGridPoint.x - 22, inMemoryGridPoint.y - 22)
+//     .fill(visibleMaskProps);
 
-  hexImageMask.add(
-    svg
-      .translate(inMemoryGridPoint.x - 22, inMemoryGridPoint.y - 22)
-      .fill(visibleMaskProps)
-  );
+//   nextHex
+//     .animate(2000)
+//     .fill({
+//       opacity: "1",
+//       color: "none"
+//     })
+//     .after(() => {
+//       nextHex
+//         .animate()
+//         .fill(visibleMaskProps)
+//         .after(() => hexImageMask.add(nextHex));
+//     });
 
-  i += 1;
-}, 100);
+//   i += 1;
+// }, 100);
 
 catImageB.maskWith(hexImageMask);
