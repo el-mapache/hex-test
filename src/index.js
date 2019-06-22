@@ -22,7 +22,7 @@ SVG.Hexagon = SVG.invent({
     return new SVG.Defs()
       .polygon(corners.map(({ x, y }) => `${x},${y}`))
       .fill({ color: "#fff", opacity: "0" })
-      .stroke({ width: "1", color: "#bbb", opacity: "0.1" });
+      .stroke({ width: "1", color: "#000", opacity: "0.9" });
   },
   construct: {
     hexagon(x, y) {
@@ -52,9 +52,10 @@ SVG.HexagonGroup = SVG.invent({
 
 const hexagons = photoHex2.hexagonGroup();
 
-const catImageA = photoHex2
-  .image("./src/img/place-cat-a.jpeg", 400, 400)
-  .translate(22, 22);
+// paint the initial image
+photoHex2.image("./src/img/place-cat-a.jpeg", 400, 400).translate(22, 22);
+
+// this is the image that will mask the initial one
 const catImageB = photoHex2
   .image("./src/img/place-cat-b.jpeg", 400, 200)
   .translate(22, 22);
@@ -65,16 +66,22 @@ const visibleMaskProps = {
   color: "#fff",
   opacity: "1"
 };
-
+console.log(catImageB.inside(17, 210));
+console.log(catImageB.inside(1, 415.69));
 // filter backing hexagon grid into a new list containing all hexagons
 // that fall within the base image
 const hexagonsInImage = backingGrid.reduce((memo, hexagon, index) => {
   const { x, y } = hexagon.toPoint();
 
   if (
-    catImageB.inside(x - 22, y - 22) ||
-    catImageB.inside(x + 22, y + 22) ||
-    catImageB.inside(x, y)
+    catImageB.inside(x, y) ||
+    catImageB.inside(x - 22, y) ||
+    catImageB.inside(x + 22, y) ||
+    catImageB.inside(x + 22, y - 22) ||
+    catImageB.inside(x - 22, y + 22) ||
+    catImageB.inside(x, y - 22) ||
+    catImageB.inside(x, y + 22) ||
+    catImageB.inside(x + 22, y + 22)
   ) {
     memo = [
       {
@@ -87,12 +94,12 @@ const hexagonsInImage = backingGrid.reduce((memo, hexagon, index) => {
 
   return memo;
 }, []);
-console.log(hexagonsInImage.length);
 
 const hexImageMask = photoHex2.mask();
 const getRandomBetween = (min, max) => Math.floor(Math.random() * max) + min;
 const selected = {};
 const loopLength = hexagonsInImage.length;
+const time = 50;
 let i = 0;
 
 const animationLoop = setInterval(() => {
@@ -114,7 +121,7 @@ const animationLoop = setInterval(() => {
   const inMemoryGridPoint = memory.toPoint();
 
   svg
-    .animate(200)
+    .animate(time)
     .fill({
       opacity: "1",
       color: "none"
@@ -130,6 +137,6 @@ const animationLoop = setInterval(() => {
           )
         );
     });
-}, 200);
+}, time);
 
 catImageB.maskWith(hexImageMask);
