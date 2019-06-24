@@ -15,6 +15,7 @@ const corners = Hex().corners();
 // in-memory representation of a grid of hexagons, from which the
 // concrete hex grid will be rendered
 const backingGrid = Grid.rectangle({ width: 22, height: 22 });
+const IMAGE_OFFSET = 22;
 
 SVG.Hexagon = SVG.invent({
   inherit: SVG.Shape,
@@ -50,15 +51,44 @@ SVG.HexagonGroup = SVG.invent({
   }
 });
 
+const paintImage = ({ svg, url, offset, size }) => {
+  console.log(size);
+  const image = size
+    ? svg.image(url, size.width, size.height)
+    : svg.image(url).loaded(function(imgData) {
+        image.size(imgData.width, imgData.height);
+      });
+
+  if (offset) {
+    image.translate(offset.x, offset.y);
+  }
+
+  return image;
+};
+
 const hexagons = photoHex2.hexagonGroup();
 
 // paint the initial image
-photoHex2.image("./src/img/place-cat-a.jpeg", 400, 400).translate(22, 22);
+paintImage({
+  svg: photoHex2,
+  url: "./src/img/place-cat-a.jpeg",
+  offset: { x: IMAGE_OFFSET, y: IMAGE_OFFSET }
+});
 
-// this is the image that will mask the initial one
 const catImageB = photoHex2
   .image("./src/img/place-cat-b.jpeg", 400, 200)
-  .translate(22, 22);
+  .translate(IMAGE_OFFSET, IMAGE_OFFSET);
+// paintImage({
+//   svg: photoHex2,
+//   url: "./src/img/place-cat-b.jpeg",
+//   offset: { x: 22, y: 22 }
+// });
+
+// this is the image that will mask the initial one
+// photoHex2.image("./src/img/place-cat-b.jpeg").translate(IMAGE_OFFSET, IMAGE_OFFSET)
+// const catImageB = photoHex2
+//   .image("./src/img/place-cat-b.jpeg", 400, 200)
+//   .translate(IMAGE_OFFSET, IMAGE_OFFSET);
 
 photoHex2.use(hexagons);
 
@@ -66,8 +96,7 @@ const visibleMaskProps = {
   color: "#fff",
   opacity: "1"
 };
-console.log(catImageB.inside(17, 210));
-console.log(catImageB.inside(1, 415.69));
+
 // filter backing hexagon grid into a new list containing all hexagons
 // that fall within the base image
 const hexagonsInImage = backingGrid.reduce((memo, hexagon, index) => {
